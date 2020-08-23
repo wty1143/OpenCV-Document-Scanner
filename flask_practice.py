@@ -3,6 +3,8 @@ import time
 import threading
 import random
 import webbrowser
+import io
+import scan
 
 app = Flask(__name__)
 
@@ -29,7 +31,9 @@ def index():
 @app.route('/transform', methods=['POST'])
 def transform():
     for key, f in request.files.items():
-        print key, f
+        print (key, f)
+        scan.worker(f.read())
+        break
     # Do something in the local, but want to use progress to track
     #thread_id = random.randint(0, 10)
     #while True:

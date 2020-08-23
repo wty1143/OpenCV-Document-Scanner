@@ -267,14 +267,13 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path):
+    def scan(self, image, OUTPUT_DIR='output'):
 
         RESCALED_HEIGHT = 500.0
-        OUTPUT_DIR = 'output'
-
+        
         # load the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
-        image = cv2.imread(image_path)
+        #image = cv2.imread(image_path)
 
         assert(image is not None)
 
@@ -302,11 +301,20 @@ class DocScanner(object):
         thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
 
         # save the transformed image
-        basename = os.path.basename(image_path)
-        cv2.imwrite(OUTPUT_DIR + '/' + basename, thresh)
-        print("Proccessed " + basename)
+        #basename = os.path.basename(image_path)
+        #cv2.imwrite(OUTPUT_DIR + '/' + basename, thresh)
+        #print("Proccessed " + basename)
+        
+        # Save to temp place
+        cv2.imwrite('temp.jpg', thresh)
 
-
+def worker(fileio):
+    import numpy
+    scanner = DocScanner(False)
+    npimg = numpy.fromstring(fileio, numpy.uint8)
+    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    scanner.scan(img)
+    
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     group = ap.add_mutually_exclusive_group(required=True)
