@@ -239,7 +239,9 @@ class DocScanner(object):
                 break
 
         # If we did not find any valid contours, just use the whole image
-        if not approx_contours:
+        # Force use the whole image
+        #if not approx_contours:
+        if True:
             TOP_RIGHT = (IM_WIDTH, 0)
             BOTTOM_RIGHT = (IM_WIDTH, IM_HEIGHT)
             BOTTOM_LEFT = (0, IM_HEIGHT)
@@ -317,8 +319,9 @@ if __name__ == "__main__":
     im_dir = args["images"]
     im_file_path = args["image"]
     interactive_mode = args["i"]
-
-    scanner = DocScanner(interactive_mode)
+    
+    # Force disable interactive_mode
+    scanner = DocScanner(False)
 
     valid_formats = [".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif"]
 
