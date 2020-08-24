@@ -1,2 +1,7 @@
 *.pyc 
 .DS_Store
+build/
+dist/
+output/
+sample_images/
+.key

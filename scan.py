@@ -267,13 +267,14 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image, OUTPUT_DIR='output'):
-
+    def scan(self, image_path, OUTPUT_DIR='output', time_postfix=''):
+        
         RESCALED_HEIGHT = 500.0
         
         # load the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
         #image = cv2.imread(image_path)
+        image = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8),-1)
 
         assert(image is not None)
 
@@ -306,7 +307,10 @@ class DocScanner(object):
         #print("Proccessed " + basename)
         
         # Save to temp place
-        cv2.imwrite('temp.jpg', thresh)
+        basename = os.path.basename(image_path)
+        #cv2.imwrite(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)), thresh)
+        print(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)))
+        cv2.imencode('.jpg', thresh)[1].tofile(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)))
 
 def worker(fileio):
     import numpy
