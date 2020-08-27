@@ -269,14 +269,18 @@ class DocScanner(object):
 
     def scan(self, image_path, OUTPUT_DIR='output', time_postfix=''):
         
-        RESCALED_HEIGHT = 500.0
+        RESCALED_HEIGHT = 100.0
         
         # load the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
         #image = cv2.imread(image_path)
         image = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8),-1)
-
+        
         assert(image is not None)
+        
+        (h, w) = image.shape[:2]
+        if h > w:
+            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)    
 
         ratio = image.shape[0] / RESCALED_HEIGHT
         orig = image.copy()
@@ -309,7 +313,7 @@ class DocScanner(object):
         # Save to temp place
         basename = os.path.basename(image_path)
         #cv2.imwrite(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)), thresh)
-        print(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)))
+        
         cv2.imencode('.jpg', thresh)[1].tofile(os.path.join(OUTPUT_DIR, '%s_%s' % (time_postfix, basename)))
 
 def worker(fileio):
