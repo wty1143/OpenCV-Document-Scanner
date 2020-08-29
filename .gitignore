@@ -1,7 +1,10 @@
-*.pyc 
+*.pyc
+*.pyo
 .DS_Store
 build/
 dist/
 output/
 sample_images/
 .key
+輸入/
+輸出/
