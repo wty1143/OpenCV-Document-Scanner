@@ -1,1 +1,1 @@
-pyinstaller -F -w -i scan.ico auto_scan.py
+pyinstaller auto_scan.spec -i scan.ico

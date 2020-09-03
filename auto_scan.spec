@@ -5,8 +5,8 @@ block_cipher = None
 
 a = Analysis(['auto_scan.py'],
              pathex=['F:\\Projects\\OpenCV-Document-Scanner'],
-             binaries=[],
-             datas=[],
+             binaries=[('bin\\*.exe', 'bin')],
+             datas=[('bin\\fsscore.dll', 'bin')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],

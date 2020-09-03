@@ -21,7 +21,15 @@ hash_obj = SHA256.new(secret.encode('utf-8'))
 hkey = hash_obj.digest()
 key_name = '.key'
 
-check_count = 0
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    key_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), key_name)
+else:
+    base_path = ""
+    key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), key_name)
+        
+SCALE_EXE = os.path.join(base_path, 'bin', 'scale.exe')
+TRAIL_USE_DAY = 14
 
 def encrypt(info):
     msg = info
@@ -52,11 +60,11 @@ def get_today():
         print(ex)
         sys.exit(0)
     
-def integrity_test(text):
-    if not os.path.exists(key_name):
+def integrity_test(window, text):
+    if not os.path.exists(key_path):
         return False
     
-    with open(key_name, 'rb') as f:
+    with open(key_path, 'rb') as f:
         plain_text = decrypt(f.read())
     
     time_str = plain_text[:8]
@@ -67,11 +75,15 @@ def integrity_test(text):
 
     if remain_day <= 7:
         LOG("%d 天後到期" % remain_day, text)
+    
+    if remain_day <= TRAIL_USE_DAY:
+        window.title('自動黑白銳利化(測試版) %d 天後到期' % remain_day)
+    
     uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'],shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).stdout.read().decode('ascii')
     return str(plain_text[8:]) == uuid and remain_day > 0
     
 def LOG(info, text):
-    text.insert("insert", info+'\n')
+    text.insert("insert", str(info)+'\n')
 
 def worker(scanner, window, text):
     
@@ -87,7 +99,7 @@ def worker(scanner, window, text):
         LOG('請開啟網路')
         return
     
-    if not integrity_test(text):
+    if not integrity_test(window, text):
         return
     
     today = get_today()
@@ -98,6 +110,15 @@ def worker(scanner, window, text):
         im_file_path = os.path.join(u'輸入', image)
         LOG('找到了 %s' % im_file_path, text)
         try:
+            output = subprocess.Popen([SCALE_EXE, im_file_path, '-B', '-O', '-s:250'],
+                            shell=True, 
+                            stdout=subprocess.PIPE, 
+                            stderr=subprocess.PIPE, 
+                            stdin=subprocess.PIPE).stdout.read().decode('ascii')
+            #LOG(os.path.exists(SCALE_EXE), text)
+            #LOG(SCALE_EXE, text)
+            #LOG(str([SCALE_EXE, im_file_path, '-B', '-O', '-s:250']), text)
+            #LOG(output, text)            
             prefix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             scanner.scan(im_file_path, u'輸出', prefix)
             new_file_path = os.path.join(u'輸出', '{0}_{1}'.format(prefix, image))
@@ -117,26 +138,44 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--make_key", action='store_true')
     ap.add_argument("--active", action='store_true')
-    ap.add_argument("--password", type=str)
     
     args = ap.parse_args()
     
-    if args.make_key and args.password == '55665566':
+    def register(info, expire):
+        if info != '55665566':
+            print('密碼錯誤')
+            sys.exit(0)
+            
+        uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'], 
+                                shell=True, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE, 
+                                stdin=subprocess.PIPE).stdout.read().decode('ascii')
+                                
+        ciphertext = encrypt(expire.strftime("%Y%m%d")+uuid)
+        
+        with open(key_path, 'wb') as f:
+            f.write(ciphertext)
+        sys.exit(0)
+
+    if args.make_key:
         print('註冊中')
+        
         if args.active:
             d = datetime.timedelta(days = 80*365)
             expire = get_today() + d
         else:
-            d = datetime.timedelta(days = 7)
+            d = datetime.timedelta(days = TRAIL_USE_DAY)
             expire = get_today() + d
-            print("7天後到期")
-        uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'],shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).stdout.read().decode('ascii')
-        ciphertext = encrypt(expire.strftime("%Y%m%d")+uuid)
+            print("14天後到期")
         
-        with open(key_name, 'wb') as f:
-            f.write(ciphertext)
-        sys.exit(0)
-    
+        parent = Tk()
+        widget = Entry(parent, textvariable='註冊碼', bd=5, show="*", width=30)
+        widget.pack()
+        parent.bind('<Return>', lambda v: register(widget.get(), expire))
+        parent.mainloop()
+        
+        
     window = Tk()
     window.title('自動黑白銳利化')
     window.geometry('400x300')
@@ -145,12 +184,13 @@ if __name__ == "__main__":
     text = Text(window, width=360, height=280)
     text.pack()
     
-    if not integrity_test(text):
+    if not integrity_test(window, text):
         sys.exit(0)
         
     # Force disable interactive_mode
     scanner = scan.DocScanner(False)
-    
+    LOG("銳利化程式執行中", text)
+
     window.after(1000, worker, scanner, window, text)
         
     window.mainloop()
