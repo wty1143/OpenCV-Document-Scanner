@@ -14,6 +14,8 @@ import requests
 
 from tkinter import *
 
+import img2pdf
+
 import internet_checker
 import subprocess
 secret = 'pleasegivemoney!'
@@ -29,6 +31,8 @@ else:
     key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), key_name)
         
 SCALE_EXE = os.path.join(base_path, 'bin', 'scale.exe')
+#IMG2PDF_EXE = os.path.join(base_path, 'bin', 'img2pdf.exe')
+PDFTOPRINTER_EXE = os.path.join(base_path, 'bin', 'PDFtoPrinter.exe')
 TRAIL_USE_DAY = 14
 
 def encrypt(info):
@@ -84,7 +88,11 @@ def integrity_test(window, text):
     
 def LOG(info, text):
     text.insert("insert", str(info)+'\n')
-
+    
+def DEBUG(info, text):
+    if args.debug:
+        LOG(info, text)
+    
 def worker(scanner, window, text):
     
     if u'輸入' not in os.listdir():
@@ -118,14 +126,28 @@ def worker(scanner, window, text):
             #LOG(os.path.exists(SCALE_EXE), text)
             #LOG(SCALE_EXE, text)
             #LOG(str([SCALE_EXE, im_file_path, '-B', '-O', '-s:250']), text)
-            #LOG(output, text)            
+            LOG(output, text)            
             prefix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             scanner.scan(im_file_path, u'輸出', prefix)
             new_file_path = os.path.join(u'輸出', '{0}_{1}'.format(prefix, image))
-            LOG('輸出至 %s' % new_file_path, text)
-            os.system('mspaint /p "%s"' % new_file_path)
+            LOG('輸出至 %s.pdf' % new_file_path, text)
+            
+            with open(os.path.abspath("%s.pdf" % new_file_path), 'wb') as f:
+                f.write(img2pdf.convert(os.path.abspath(new_file_path)))
+            
             LOG('刪除 %s' % im_file_path, text)
             os.remove(im_file_path)
+            
+            LOG('列印 %s' % im_file_path, text)
+            output = subprocess.Popen([PDFTOPRINTER_EXE, "%s.pdf" % os.path.abspath(new_file_path)],
+                            shell=True, 
+                            stdout=subprocess.PIPE, 
+                            stderr=subprocess.PIPE, 
+                            stdin=subprocess.PIPE).stdout.read().decode('ascii')
+                            
+            os.remove(new_file_path)
+            os.remove("%s.pdf" % os.path.abspath(new_file_path))
+            
         except:
             LOG('處理 %s 失敗' % im_file_path, text)
             traceback.print_exc()
@@ -134,10 +156,11 @@ def worker(scanner, window, text):
     
 
 if __name__ == "__main__":
-
+    global args
     ap = argparse.ArgumentParser()
     ap.add_argument("--make_key", action='store_true')
     ap.add_argument("--active", action='store_true')
+    ap.add_argument("--debug", action='store_true')
     
     args = ap.parse_args()
     

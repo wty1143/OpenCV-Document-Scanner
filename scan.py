@@ -304,7 +304,7 @@ class DocScanner(object):
 
         # apply adaptive threshold to get black and white effect
         #thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
-        thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 51, 15)
+        thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 121, 15)
         
         # save the transformed image
         #basename = os.path.basename(image_path)
@@ -346,7 +346,7 @@ if __name__ == "__main__":
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
-        scanner.scan(im_file_path)
+        scanner.scan(im_file_path, OUTPUT_DIR='.')
 
     # Scan all valid images in directory specified by command line argument --images <IMAGE_DIR>
     else:
