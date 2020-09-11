@@ -133,20 +133,21 @@ def worker(scanner, window, text):
             LOG('輸出至 %s.pdf' % new_file_path, text)
             
             with open(os.path.abspath("%s.pdf" % new_file_path), 'wb') as f:
-                f.write(img2pdf.convert(os.path.abspath(new_file_path)))
+                f.write(img2pdf.convert(os.path.abspath(new_file_path), fit='fill'))
             
             LOG('刪除 %s' % im_file_path, text)
             os.remove(im_file_path)
             
             LOG('列印 %s' % im_file_path, text)
-            output = subprocess.Popen([PDFTOPRINTER_EXE, "%s.pdf" % os.path.abspath(new_file_path)],
-                            shell=True, 
-                            stdout=subprocess.PIPE, 
-                            stderr=subprocess.PIPE, 
-                            stdin=subprocess.PIPE).stdout.read().decode('ascii')
+            if not args.debug:
+                output = subprocess.Popen([PDFTOPRINTER_EXE, "%s.pdf" % os.path.abspath(new_file_path)],
+                                shell=True, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE, 
+                                stdin=subprocess.PIPE).stdout.read().decode('ascii')
                             
-            os.remove(new_file_path)
-            os.remove("%s.pdf" % os.path.abspath(new_file_path))
+                os.remove(new_file_path)
+                os.remove("%s.pdf" % os.path.abspath(new_file_path))
             
         except:
             LOG('處理 %s 失敗' % im_file_path, text)
