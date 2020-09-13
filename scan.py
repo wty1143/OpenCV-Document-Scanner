@@ -267,7 +267,7 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path, OUTPUT_DIR='output', time_postfix=''):
+    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=121, C=15):
         
         RESCALED_HEIGHT = 100.0
         
@@ -304,7 +304,7 @@ class DocScanner(object):
 
         # apply adaptive threshold to get black and white effect
         #thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
-        thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 121, 15)
+        thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, C)
         
         # save the transformed image
         #basename = os.path.basename(image_path)
@@ -329,6 +329,7 @@ if __name__ == "__main__":
     group = ap.add_mutually_exclusive_group(required=True)
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
+    ap.add_argument("--cal", help="calibration_with_all possible combinations", action='store_true')
     ap.add_argument("-i", action='store_true',
         help = "Flag for manually verifying and/or setting document corners")
 
@@ -336,6 +337,7 @@ if __name__ == "__main__":
     im_dir = args["images"]
     im_file_path = args["image"]
     interactive_mode = args["i"]
+    cal = args["cal"]
     
     # Force disable interactive_mode
     scanner = DocScanner(False)
@@ -346,7 +348,17 @@ if __name__ == "__main__":
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
-        scanner.scan(im_file_path, OUTPUT_DIR='.')
+        if not cal:
+            scanner.scan(im_file_path, OUTPUT_DIR='.')
+        else:
+            # test all block_size/C combinations
+            if not os.path.exists('cals'):
+                os.makedirs('cals')
+            for block_size in range(3, 201, 2):
+                for C in range(0, 21, 3):
+                    scanner.scan(im_file_path, OUTPUT_DIR='cals', time_postfix='%d_%d'%(block_size, C), block_size=block_size, C=C)
+                    
+            
 
     # Scan all valid images in directory specified by command line argument --images <IMAGE_DIR>
     else:

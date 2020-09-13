@@ -3,6 +3,7 @@
 .DS_Store
 build/
 dist/
+cals/
 output/
 sample_images/
 .key
