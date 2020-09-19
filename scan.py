@@ -267,7 +267,7 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=121, C=15):
+    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=61, C=8):
         
         RESCALED_HEIGHT = 100.0
         
@@ -354,9 +354,9 @@ if __name__ == "__main__":
             # test all block_size/C combinations
             if not os.path.exists('cals'):
                 os.makedirs('cals')
-            for block_size in range(3, 201, 2):
-                for C in range(0, 21, 3):
-                    scanner.scan(im_file_path, OUTPUT_DIR='cals', time_postfix='%d_%d'%(block_size, C), block_size=block_size, C=C)
+            for block_size in range(21, 201, 20):
+                for C in range(3, 12):
+                    scanner.scan(im_file_path, OUTPUT_DIR='cals', time_postfix='%d_%d'%(C, block_size), block_size=block_size, C=C)
                     
             
 
