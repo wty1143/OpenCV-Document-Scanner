@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import os
 import sys
 import scan
@@ -118,15 +119,19 @@ def worker(scanner, window, text):
         im_file_path = os.path.join(u'輸入', image)
         LOG('找到了 %s' % im_file_path, text)
         try:
-            output = subprocess.Popen([SCALE_EXE, im_file_path, '-B', '-O', '-s:250'],
-                            shell=True, 
-                            stdout=subprocess.PIPE, 
-                            stderr=subprocess.PIPE, 
-                            stdin=subprocess.PIPE).stdout.read().decode('ascii')
-            #LOG(os.path.exists(SCALE_EXE), text)
-            #LOG(SCALE_EXE, text)
-            #LOG(str([SCALE_EXE, im_file_path, '-B', '-O', '-s:250']), text)
-            LOG(output, text)            
+            im = cv2.imdecode(np.fromfile(im_file_path, dtype=np.uint8),-1)
+            (h, w) = im.shape[:2]
+            
+            if h*w <= 500*500:
+                output = subprocess.Popen([SCALE_EXE, im_file_path, '-B', '-O', '-s:200'],
+                                shell=True, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE, 
+                                stdin=subprocess.PIPE).stdout.read().decode('ascii')
+                #LOG(os.path.exists(SCALE_EXE), text)
+                #LOG(SCALE_EXE, text)
+                #LOG(str([SCALE_EXE, im_file_path, '-B', '-O', '-s:250']), text)
+                LOG(output, text)            
             prefix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             scanner.scan(im_file_path, u'輸出', prefix)
             new_file_path = os.path.join(u'輸出', '{0}_{1}'.format(prefix, image))

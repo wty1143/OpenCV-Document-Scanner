@@ -267,9 +267,9 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=61, C=8):
+    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=61, C=11):
         
-        RESCALED_HEIGHT = 100.0
+        RESCALED_HEIGHT = 500.0
         
         # load the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
@@ -301,7 +301,10 @@ class DocScanner(object):
         # sharpen image
         sharpen = cv2.GaussianBlur(gray, (0,0), 3)
         sharpen = cv2.addWeighted(gray, 1.5, sharpen, -0.5, 0)
-
+        
+        #plt.imshow(sharpen)
+        #plt.show()
+        
         # apply adaptive threshold to get black and white effect
         #thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
         thresh = cv2.adaptiveThreshold(sharpen, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, C)
@@ -355,7 +358,7 @@ if __name__ == "__main__":
             if not os.path.exists('cals'):
                 os.makedirs('cals')
             for block_size in range(21, 201, 20):
-                for C in range(3, 12):
+                for C in range(6, 15):
                     scanner.scan(im_file_path, OUTPUT_DIR='cals', time_postfix='%d_%d'%(C, block_size), block_size=block_size, C=C)
                     
             
