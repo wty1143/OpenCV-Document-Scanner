@@ -1,5 +1,6 @@
 *.pyc
 *.pyo
+*.jpg
 .DS_Store
 build/
 dist/
@@ -9,3 +10,5 @@ sample_images/
 .key
 輸入/
 輸出/
+reference/A Sharper Scaling.url
+record.json

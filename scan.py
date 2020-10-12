@@ -182,8 +182,9 @@ class DocScanner(object):
         MORPH = 9
         CANNY = 84
         HOUGH = 25
-
+        
         IM_HEIGHT, IM_WIDTH, _ = rescaled_image.shape
+        
 
         # convert the image to grayscale and blur it slightly
         gray = cv2.cvtColor(rescaled_image, cv2.COLOR_BGR2GRAY)
@@ -267,7 +268,7 @@ class DocScanner(object):
         new_points = np.array([[p] for p in new_points], dtype = "int32")
         return new_points.reshape(4, 2)
 
-    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='', block_size=61, C=11):
+    def scan(self, image_path, OUTPUT_DIR='output', time_postfix='20200101', block_size=61, C=11, owner='測試', nubmer=0):
         
         RESCALED_HEIGHT = 500.0
         
@@ -277,6 +278,10 @@ class DocScanner(object):
         image = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8),-1)
         
         assert(image is not None)
+        
+        # Convert grayscale back to color
+        if len(image.shape) == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         
         (h, w) = image.shape[:2]
         if h > w:

@@ -19,6 +19,12 @@ import img2pdf
 
 import internet_checker
 import subprocess
+
+import re
+import json
+
+JSON_FILE = 'record.json'
+
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
 hkey = hash_obj.digest()
@@ -104,14 +110,21 @@ def worker(scanner, window, text):
         LOG('創建資料夾:輸出', text)
         os.mkdir(u'輸出')
     
+    today = get_today()
+    
+    if JSON_FILE not in os.listdir():
+        d = {}
+        json.dump(d, open(JSON_FILE, "w"))
+        
+        
     if not internet_checker.check_internet_on():
-        LOG('請開啟網路')
+        LOG('請開啟網路', text)
         return
     
     if not integrity_test(window, text):
         return
     
-    today = get_today()
+    
     
     images = os.listdir(u'輸入')
     
@@ -122,27 +135,76 @@ def worker(scanner, window, text):
             im = cv2.imdecode(np.fromfile(im_file_path, dtype=np.uint8),-1)
             (h, w) = im.shape[:2]
             
+            # If image is too small, scale up
             if h*w <= 500*500:
                 output = subprocess.Popen([SCALE_EXE, im_file_path, '-B', '-O', '-s:200'],
                                 shell=True, 
                                 stdout=subprocess.PIPE, 
                                 stderr=subprocess.PIPE, 
                                 stdin=subprocess.PIPE).stdout.read().decode('ascii')
-                #LOG(os.path.exists(SCALE_EXE), text)
-                #LOG(SCALE_EXE, text)
-                #LOG(str([SCALE_EXE, im_file_path, '-B', '-O', '-s:250']), text)
-                LOG(output, text)            
+                LOG(output, text)       
+            
+            # Process the image
             prefix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             scanner.scan(im_file_path, u'輸出', prefix)
+            
             new_file_path = os.path.join(u'輸出', '{0}_{1}'.format(prefix, image))
             LOG('輸出至 %s.pdf' % new_file_path, text)
             
+            # 王元元_test_20201012235527-382722.jpg
+            pattern = '^(.*?)_(.*?)_(..............)-......\.'
+            
+            # If image is from server, add timestamps
+            m = re.match(pattern, image)
+            if m:
+                from PIL import Image
+                from PIL import ImageDraw 
+                from PIL import ImageFont 
+                
+                d = json.load(open(JSON_FILE, "r"))
+                date = datetime.datetime.now().strftime("%Y/%m/%d")
+                if date not in d:
+                    d[date] = 1
+                else:
+                    d[date] += 1
+                json.dump(d, open(JSON_FILE, "w"))
+                
+                from_who = m.group(1)
+                to_whom = m.group(2)
+                ts = m.group(3)
+                year, month, day = ts[:4], ts[4:6], ts[6:8]
+                hour, minute, second = ts[8:10], ts[10:12], ts[12:]
+                recieve_time = u'接收時間: '
+                recieve_time += u'%s/%s/%s %s:%s:%s' % (year, month, day, hour, minute, second)
+                
+                print_time = u'列印時間: '
+                print_time += datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                print_time += u' %s 傳給 %s 第 %d 張' % (from_who, to_whom, d[date])
+                
+                origin_img = Image.open(new_file_path).convert('RGB').rotate(90, expand=True)
+                if origin_img.size[0] < 720:
+                    font = ImageFont.truetype("simhei.ttf", 16, encoding="utf-8")
+                else:
+                    font = ImageFont.truetype("simhei.ttf", 24, encoding="utf-8")
+                
+                # Extend
+                width, height = origin_img.size
+                img = Image.new(origin_img.mode, (width, height+48), (255, 255, 255))
+                img.paste(origin_img, (0, 60))
+                
+                draw = ImageDraw.Draw(img)
+                draw.text((10, 0), recieve_time, (0, 0, 0), font=font)
+                draw.text((10, 30), print_time, (0, 0, 0), font=font)
+                img = img.rotate(-90, expand=True)
+                img.save(new_file_path)
+                
+            # Convert into pdf
             with open(os.path.abspath("%s.pdf" % new_file_path), 'wb') as f:
                 f.write(img2pdf.convert(os.path.abspath(new_file_path), fit='fill'))
             
             LOG('刪除 %s' % im_file_path, text)
             os.remove(im_file_path)
-            
+
             LOG('列印 %s' % im_file_path, text)
             if not args.debug:
                 output = subprocess.Popen([PDFTOPRINTER_EXE, "%s.pdf" % os.path.abspath(new_file_path)],
@@ -158,7 +220,7 @@ def worker(scanner, window, text):
             LOG('處理 %s 失敗' % im_file_path, text)
             traceback.print_exc()
     
-    window.after(5000, worker, scanner, window, text)
+    window.after(2000, worker, scanner, window, text)
     
 
 if __name__ == "__main__":
