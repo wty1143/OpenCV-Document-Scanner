@@ -24,6 +24,7 @@ import re
 import json
 
 JSON_FILE = 'record.json'
+VERSION = '1.0'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -38,7 +39,7 @@ else:
     key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), key_name)
         
 SCALE_EXE = os.path.join(base_path, 'bin', 'scale.exe')
-#IMG2PDF_EXE = os.path.join(base_path, 'bin', 'img2pdf.exe')
+SIMHEI_TTF = os.path.join(base_path, 'bin', 'simhei.ttf')
 PDFTOPRINTER_EXE = os.path.join(base_path, 'bin', 'PDFtoPrinter.exe')
 TRAIL_USE_DAY = 14
 
@@ -83,9 +84,6 @@ def integrity_test(window, text):
     expire = datetime.date(year, month, day)
     
     remain_day = (expire - get_today()).days
-
-    if remain_day <= 7:
-        LOG("%d 天後到期" % remain_day, text)
     
     if remain_day <= TRAIL_USE_DAY:
         window.title('自動黑白銳利化(測試版) %d 天後到期' % remain_day)
@@ -163,15 +161,19 @@ def worker(scanner, window, text):
                 
                 d = json.load(open(JSON_FILE, "r"))
                 date = datetime.datetime.now().strftime("%Y/%m/%d")
-                if date not in d:
-                    d[date] = 1
-                else:
-                    d[date] += 1
-                json.dump(d, open(JSON_FILE, "w"))
-                
+                if date not in d or not isinstance(d[date], dict):
+                    d[date] = {}
+                    
                 from_who = m.group(1)
                 to_whom = m.group(2)
                 ts = m.group(3)
+                
+                if from_who not in d[date]:
+                    d[date][from_who] = 0
+                d[date][from_who] += 1
+                
+                json.dump(d, open(JSON_FILE, "w"))
+                
                 year, month, day = ts[:4], ts[4:6], ts[6:8]
                 hour, minute, second = ts[8:10], ts[10:12], ts[12:]
                 recieve_time = u'接收時間: '
@@ -179,13 +181,13 @@ def worker(scanner, window, text):
                 
                 print_time = u'列印時間: '
                 print_time += datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                print_time += u' %s 傳給 %s 第 %d 張' % (from_who, to_whom, d[date])
+                print_time += u' %s 傳給 %s 第 %d 張' % (from_who, to_whom, d[date][from_who])
                 
                 origin_img = Image.open(new_file_path).convert('RGB').rotate(90, expand=True)
                 if origin_img.size[0] < 720:
-                    font = ImageFont.truetype("simhei.ttf", 16, encoding="utf-8")
+                    font = ImageFont.truetype(SIMHEI_TTF, 16, encoding="utf-8")
                 else:
-                    font = ImageFont.truetype("simhei.ttf", 24, encoding="utf-8")
+                    font = ImageFont.truetype(SIMHEI_TTF, 24, encoding="utf-8")
                 
                 # Extend
                 width, height = origin_img.size
@@ -280,7 +282,7 @@ if __name__ == "__main__":
         
     # Force disable interactive_mode
     scanner = scan.DocScanner(False)
-    LOG("銳利化程式執行中", text)
+    LOG("銳利化程式執行中 版本 %s" % VERSION, text)
 
     window.after(1000, worker, scanner, window, text)
         
