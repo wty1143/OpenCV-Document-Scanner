@@ -24,7 +24,7 @@ import re
 import json
 
 JSON_FILE = 'record.json'
-VERSION = '1.0'
+VERSION = '2.0'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  

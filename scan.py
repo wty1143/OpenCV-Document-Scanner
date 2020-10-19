@@ -290,15 +290,18 @@ class DocScanner(object):
         ratio = image.shape[0] / RESCALED_HEIGHT
         orig = image.copy()
         rescaled_image = imutils.resize(image, height = int(RESCALED_HEIGHT))
-
-        # get the contour of the document
-        screenCnt = self.get_contour(rescaled_image)
-
-        if self.interactive:
-            screenCnt = self.interactive_get_contour(screenCnt, rescaled_image)
-
-        # apply the perspective transformation
-        warped = transform.four_point_transform(orig, screenCnt * ratio)
+        
+        try:
+            # get the contour of the document
+            screenCnt = self.get_contour(rescaled_image)
+    
+            if self.interactive:
+                screenCnt = self.interactive_get_contour(screenCnt, rescaled_image)
+    
+            # apply the perspective transformation
+            warped = transform.four_point_transform(orig, screenCnt * ratio)
+        except:
+            warped = orig
 
         # convert the warped image to grayscale
         gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
