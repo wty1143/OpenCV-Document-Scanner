@@ -24,7 +24,7 @@ import re
 import json
 
 JSON_FILE = 'record.json'
-VERSION = '2.0'
+VERSION = '3.0'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -60,17 +60,6 @@ def decrypt(info):
     pad_index = pt.find(PAD)
     result = pt[: pad_index]
     return result    
-
-def get_today():    
-    try:
-        res = requests.get('http://just-the-time.appspot.com/')
-        time_str = res.content.strip().decode('utf-8')
-        year, month, day = int(time_str[:4]), int(time_str[5:7]), int(time_str[8:10])
-        today = datetime.date(year, month, day)
-        return today
-    except Exception as ex:
-        print(ex)
-        sys.exit(0)
     
 def integrity_test(window, text):
     if not os.path.exists(key_path):
@@ -79,17 +68,8 @@ def integrity_test(window, text):
     with open(key_path, 'rb') as f:
         plain_text = decrypt(f.read())
     
-    time_str = plain_text[:8]
-    year, month, day = int(time_str[:4]), int(time_str[4:6]), int(time_str[6:8])
-    expire = datetime.date(year, month, day)
-    
-    remain_day = (expire - get_today()).days
-    
-    if remain_day <= TRAIL_USE_DAY:
-        window.title('自動黑白銳利化(測試版) %d 天後到期' % remain_day)
-    
     uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'],shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).stdout.read().decode('ascii')
-    return str(plain_text[8:]) == uuid and remain_day > 0
+    return str(plain_text[8:]) == uuid 
     
 def LOG(info, text):
     text.insert("insert", str(info)+'\n')
@@ -108,22 +88,10 @@ def worker(scanner, window, text):
         LOG('創建資料夾:輸出', text)
         os.mkdir(u'輸出')
     
-    today = get_today()
-    
     if JSON_FILE not in os.listdir():
         d = {}
         json.dump(d, open(JSON_FILE, "w"))
         
-        
-    if not internet_checker.check_internet_on():
-        LOG('請開啟網路', text)
-        return
-    
-    if not integrity_test(window, text):
-        return
-    
-    
-    
     images = os.listdir(u'輸入')
     
     for image in images:
@@ -229,7 +197,6 @@ if __name__ == "__main__":
     global args
     ap = argparse.ArgumentParser()
     ap.add_argument("--make_key", action='store_true')
-    ap.add_argument("--active", action='store_true')
     ap.add_argument("--debug", action='store_true')
     
     args = ap.parse_args()
@@ -253,14 +220,10 @@ if __name__ == "__main__":
 
     if args.make_key:
         print('註冊中')
-        
-        if args.active:
-            d = datetime.timedelta(days = 80*365)
-            expire = get_today() + d
-        else:
-            d = datetime.timedelta(days = TRAIL_USE_DAY)
-            expire = get_today() + d
-            print("14天後到期")
+       
+        d = datetime.timedelta(days = 80*365)
+        expire = datetime.datetime.now()
+
         
         parent = Tk()
         widget = Entry(parent, textvariable='註冊碼', bd=5, show="*", width=30)
