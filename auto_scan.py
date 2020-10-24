@@ -23,8 +23,10 @@ import subprocess
 import re
 import json
 
+from shutil import copyfile, rmtree
+
 JSON_FILE = 'record.json'
-VERSION = '3.0'
+VERSION = '3.1'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -87,7 +89,11 @@ def worker(scanner, window, text):
     if u'輸出' not in os.listdir():
         LOG('創建資料夾:輸出', text)
         os.mkdir(u'輸出')
-    
+        
+    if u'原圖' not in os.listdir():
+        LOG('創建資料夾:原圖', text)
+        os.mkdir(u'原圖')
+        
     if JSON_FILE not in os.listdir():
         d = {}
         json.dump(d, open(JSON_FILE, "w"))
@@ -96,6 +102,17 @@ def worker(scanner, window, text):
     
     for image in images:
         im_file_path = os.path.join(u'輸入', image)
+        
+        # record current time
+        now = datetime.datetime.now()
+        
+        # Backup the image first
+        backup_folder = os.path.join(u'原圖', now.strftime("%Y%m%d"))
+        if not os.path.exists(backup_folder):
+            os.mkdir(backup_folder)
+        back_path = os.path.join(backup_folder, image)
+        copyfile(im_file_path, back_path)
+        
         LOG('找到了 %s' % im_file_path, text)
         try:
             im = cv2.imdecode(np.fromfile(im_file_path, dtype=np.uint8),-1)
@@ -111,7 +128,7 @@ def worker(scanner, window, text):
                 LOG(output, text)       
             
             # Process the image
-            prefix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            prefix = now.strftime("%Y%m%d%H%M%S")
             scanner.scan(im_file_path, u'輸出', prefix)
             
             new_file_path = os.path.join(u'輸出', '{0}_{1}'.format(prefix, image))
@@ -128,7 +145,7 @@ def worker(scanner, window, text):
                 from PIL import ImageFont 
                 
                 d = json.load(open(JSON_FILE, "r"))
-                date = datetime.datetime.now().strftime("%Y/%m/%d")
+                date = now.strftime("%Y/%m/%d")
                 if date not in d or not isinstance(d[date], dict):
                     d[date] = {}
                     
@@ -148,23 +165,28 @@ def worker(scanner, window, text):
                 recieve_time += u'%s/%s/%s %s:%s:%s' % (year, month, day, hour, minute, second)
                 
                 print_time = u'列印時間: '
-                print_time += datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                print_time += now.strftime("%Y/%m/%d %H:%M:%S")
                 print_time += u' %s 傳給 %s 第 %d 張' % (from_who, to_whom, d[date][from_who])
                 
                 origin_img = Image.open(new_file_path).convert('RGB').rotate(90, expand=True)
-                if origin_img.size[0] < 720:
+                if origin_img.size[0] <= 720:
+                    text_width = 20
                     font = ImageFont.truetype(SIMHEI_TTF, 16, encoding="utf-8")
-                else:
+                elif origin_img.size[0] <= 1440:
+                    text_width = 30
                     font = ImageFont.truetype(SIMHEI_TTF, 24, encoding="utf-8")
-                
+                else:
+                    text_width = 40
+                    font = ImageFont.truetype(SIMHEI_TTF, 36, encoding="utf-8")
+                    
                 # Extend
                 width, height = origin_img.size
                 img = Image.new(origin_img.mode, (width, height+48), (255, 255, 255))
-                img.paste(origin_img, (0, 60))
+                img.paste(origin_img, (0, text_width*2))
                 
                 draw = ImageDraw.Draw(img)
                 draw.text((10, 0), recieve_time, (0, 0, 0), font=font)
-                draw.text((10, 30), print_time, (0, 0, 0), font=font)
+                draw.text((10, text_width), print_time, (0, 0, 0), font=font)
                 img = img.rotate(-90, expand=True)
                 img.save(new_file_path)
                 
@@ -189,6 +211,19 @@ def worker(scanner, window, text):
         except:
             LOG('處理 %s 失敗' % im_file_path, text)
             traceback.print_exc()
+            
+    folders = os.listdir(u'原圖')
+    now = datetime.datetime.now()
+    # Step 2, delete the folder that is expire
+    for folder in folders:
+        try:
+            date = datetime.datetime.strptime(folder, "%Y%m%d")
+            if (now - date).days >= 7:
+                rmtree(os.path.join(u'原圖', folder))
+                LOG('刪除原圖 %s' % folder, text)
+        except:
+            traceback.print_exc()
+            pass
     
     window.after(2000, worker, scanner, window, text)
     
