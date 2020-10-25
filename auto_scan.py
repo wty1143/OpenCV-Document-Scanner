@@ -26,7 +26,7 @@ import json
 from shutil import copyfile, rmtree
 
 JSON_FILE = 'record.json'
-VERSION = '3.1'
+VERSION = '3.2'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -106,15 +106,17 @@ def worker(scanner, window, text):
         # record current time
         now = datetime.datetime.now()
         
-        # Backup the image first
-        backup_folder = os.path.join(u'原圖', now.strftime("%Y%m%d"))
-        if not os.path.exists(backup_folder):
-            os.mkdir(backup_folder)
-        back_path = os.path.join(backup_folder, image)
-        copyfile(im_file_path, back_path)
+        
         
         LOG('找到了 %s' % im_file_path, text)
         try:
+            # Backup the image first
+            backup_folder = os.path.join(u'原圖', now.strftime("%Y%m%d"))
+            if not os.path.exists(backup_folder):
+                os.mkdir(backup_folder)
+            back_path = os.path.join(backup_folder, image)
+            copyfile(im_file_path, back_path)
+        
             im = cv2.imdecode(np.fromfile(im_file_path, dtype=np.uint8),-1)
             (h, w) = im.shape[:2]
             
@@ -225,10 +227,14 @@ def worker(scanner, window, text):
             traceback.print_exc()
             pass
     
-    window.after(2000, worker, scanner, window, text)
+    window.after(1000, worker, scanner, window, text)
     
 
 if __name__ == "__main__":
+
+    from tendo import singleton
+    me = singleton.SingleInstance()
+
     global args
     ap = argparse.ArgumentParser()
     ap.add_argument("--make_key", action='store_true')
