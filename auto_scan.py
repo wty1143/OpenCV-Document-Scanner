@@ -103,7 +103,7 @@ class SingleInstance(object):
 
 DAILY_FILE = 'log.txt'
 JSON_FILE = 'record.json'
-VERSION = '4.4'
+VERSION = '4.4.1'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -168,17 +168,18 @@ def safe_remove(filename):
     return safe_remove_count
 
 def STEP_LOG(msg, path):
-    log_update_sucess = False
+    log_update_sucess_retry = 0
     now = datetime.datetime.now()
-    print(msg)
-    while not log_update_sucess:
+    
+    while log_update_sucess_retry < 10:
         try:
             now_str = now.strftime("%Y/%m/%d %H:%M:%S")
             with open(path, "a") as f:
                 f.write('[%s] %s\n' % (now_str, msg))
-            log_update_sucess = True
+            log_update_sucess_retry = 10
         except:
-            pass
+            log_update_sucess_retry += 1
+                
             
 def worker(scanner, window, text):
     
@@ -235,7 +236,6 @@ def worker(scanner, window, text):
     
     for image in images:
         im_file_path = os.path.join(u'輸入', image)
-        print(im_file_path)
         
         # record current time
         use_internet_time = True
@@ -435,12 +435,12 @@ if __name__ == "__main__":
         messagebox.showerror("錯誤", "請勿重複開啟銳利化程式!!!")
         sys.exit(0)
     
-    try:
-        if not internet_checker.check_internet_on():
-            messagebox.showerror("錯誤", "請先開啟網路!!!")
-        sys.exit(0)
-    except:
-        pass
+    #try:
+    #    if not internet_checker.check_internet_on():
+    #        messagebox.showerror("錯誤", "請先開啟網路!!!")
+    #    sys.exit(0)
+    #except:
+    #    pass
     
     global args
     ap = argparse.ArgumentParser()
