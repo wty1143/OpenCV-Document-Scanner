@@ -7,7 +7,7 @@ a = Analysis(['auto_scan.py'],
              pathex=['F:\\Projects\\OpenCV-Document-Scanner'],
              binaries=[('bin\\*.exe', 'bin')],
              datas=[('bin\\fsscore.dll', 'bin'), ('bin\\PDF-XChange Viewer Settings.dat', 'bin'), ('bin\\simhei.ttf', 'bin')],
-             hiddenimports=['pikepdf._cpphelpers', 'Crypto', 'PIL', 'tendo'],
+             hiddenimports=['pikepdf._cpphelpers', 'Crypto', 'PIL'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -15,6 +15,7 @@ a = Analysis(['auto_scan.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+             
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
@@ -30,4 +31,4 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=True , icon='scan.ico')
+          console=False , icon='scan.ico')
