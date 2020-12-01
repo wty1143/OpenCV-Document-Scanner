@@ -103,7 +103,7 @@ class SingleInstance(object):
 
 DAILY_FILE = 'log.txt'
 JSON_FILE = 'record.json'
-VERSION = '4.5'
+VERSION = '5.0'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -122,33 +122,33 @@ SIMHEI_TTF = os.path.join(base_path, 'bin', 'simhei.ttf')
 PDFTOPRINTER_EXE = os.path.join(base_path, 'bin', 'PDFtoPrinter.exe')
 TRAIL_USE_DAY = 14
 
-def encrypt(info):
-    msg = info
-    BLOCK_SIZE = 16
-    PAD = "{"
-    padding = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PAD
-    cipher = AES.new(hkey, AES.MODE_ECB)
-    result = cipher.encrypt(padding(msg).encode('utf-8'))
-    return result 
-
-def decrypt(info):
-    msg = info
-    PAD = "{"
-    decipher = AES.new(hkey, AES.MODE_ECB)
-    pt = decipher.decrypt(msg).decode('utf-8')
-    pad_index = pt.find(PAD)
-    result = pt[: pad_index]
-    return result    
+#def encrypt(info):
+#    msg = info
+#    BLOCK_SIZE = 16
+#    PAD = "{"
+#    padding = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PAD
+#    cipher = AES.new(hkey, AES.MODE_ECB)
+#    result = cipher.encrypt(padding(msg).encode('utf-8'))
+#    return result 
+#
+#def decrypt(info):
+#    msg = info
+#    PAD = "{"
+#    decipher = AES.new(hkey, AES.MODE_ECB)
+#    pt = decipher.decrypt(msg).decode('utf-8')
+#    pad_index = pt.find(PAD)
+#    result = pt[: pad_index]
+#    return result    
     
-def integrity_test(window, text):
-    if not os.path.exists(key_path):
-        return False
-    
-    with open(key_path, 'rb') as f:
-        plain_text = decrypt(f.read())
-    
-    uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'],shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).stdout.read().decode('ascii')
-    return str(plain_text[8:]) == uuid 
+#def integrity_test(window, text):
+#    if not os.path.exists(key_path):
+#        return False
+#    
+#    with open(key_path, 'rb') as f:
+#        plain_text = decrypt(f.read())
+#    
+#    uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'],shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).stdout.read().decode('ascii')
+#    return str(plain_text[8:]) == uuid 
     
 def LOG(info, text):
     text.insert("insert", str(info)+'\n')
@@ -441,56 +441,73 @@ def worker(scanner, window, text):
     
 
 if __name__ == "__main__":
+    from tkinter import messagebox
+    
     try:
         me = SingleInstance()
     except:
-        from tkinter import messagebox
         messagebox.showerror("錯誤", "請勿重複開啟銳利化程式!!!")
-        sys.exit(0)
-    
-    #try:
-    #    if not internet_checker.check_internet_on():
-    #        messagebox.showerror("錯誤", "請先開啟網路!!!")
-    #    sys.exit(0)
-    #except:
-    #    pass
+        sys.exit(1)
+        
+    try:
+        if not internet_checker.check_internet_on():
+            messagebox.showerror("錯誤", "請先開啟網路!!!")
+            raise RuntimeError('No internet connection')
+    except:
+        print('Internet check fail')
+        sys.exit(1)   
+        
+    try:
+        url = 'https://raw.githubusercontent.com/wty1143/OpenCV-Document-Scanner/master/version_info.txt'
+        res = urlopen(url)
+        version_str = float(res.read().strip().decode('utf-8')[8:])
+        if version_str > float(VERSION):
+            messagebox.showerror("錯誤", "請更新主程式!!!")
+            raise RuntimeError('Version too old error')
+    except RuntimeError:
+        print('Version check fail')
+        sys.exit(1)
+    except:
+        pass
+        
+
     
     global args
     ap = argparse.ArgumentParser()
-    ap.add_argument("--make_key", action='store_true')
+    #ap.add_argument("--make_key", action='store_true')
     ap.add_argument("--debug", action='store_true')
     
     args = ap.parse_args()
     
-    def register(info, expire):
-        if info != '55665566':
-            print('密碼錯誤')
-            sys.exit(0)
-            
-        uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'], 
-                                shell=True, 
-                                stdout=subprocess.PIPE, 
-                                stderr=subprocess.PIPE, 
-                                stdin=subprocess.PIPE).stdout.read().decode('ascii')
-                                
-        ciphertext = encrypt(expire.strftime("%Y%m%d")+uuid)
-        
-        with open(key_path, 'wb') as f:
-            f.write(ciphertext)
-        sys.exit(0)
+    #def register(info, expire):
+    #    if info != '55665566':
+    #        print('密碼錯誤')
+    #        sys.exit(0)
+    #        
+    #    uuid = subprocess.Popen(['wmic', 'csproduct','get' ,'UUID'], 
+    #                            shell=True, 
+    #                            stdout=subprocess.PIPE, 
+    #                            stderr=subprocess.PIPE, 
+    #                            stdin=subprocess.PIPE).stdout.read().decode('ascii')
+    #                            
+    #    ciphertext = encrypt(expire.strftime("%Y%m%d")+uuid)
+    #    
+    #    with open(key_path, 'wb') as f:
+    #        f.write(ciphertext)
+    #    sys.exit(0)
 
-    if args.make_key:
-        print('註冊中')
-       
-        d = datetime.timedelta(days = 80*365)
-        expire = datetime.datetime.now()
-
-        
-        parent = Tk()
-        widget = Entry(parent, textvariable='註冊碼', bd=5, show="*", width=30)
-        widget.pack()
-        parent.bind('<Return>', lambda v: register(widget.get(), expire))
-        parent.mainloop()
+    #if args.make_key:
+    #    print('註冊中')
+    #   
+    #    d = datetime.timedelta(days = 80*365)
+    #    expire = datetime.datetime.now()
+    #
+    #    
+    #    parent = Tk()
+    #    widget = Entry(parent, textvariable='註冊碼', bd=5, show="*", width=30)
+    #    widget.pack()
+    #    parent.bind('<Return>', lambda v: register(widget.get(), expire))
+    #    parent.mainloop()
         
         
     window = Tk()
@@ -501,8 +518,8 @@ if __name__ == "__main__":
     text = Text(window, width=360, height=280)
     text.pack()
     
-    if not integrity_test(window, text):
-        sys.exit(0)
+    #if not integrity_test(window, text):
+    #    sys.exit(0)
         
     # Force disable interactive_mode
     scanner = scan.DocScanner(False)
