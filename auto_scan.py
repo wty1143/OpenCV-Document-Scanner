@@ -103,7 +103,7 @@ class SingleInstance(object):
 
 DAILY_FILE = 'log.txt'
 JSON_FILE = 'record.json'
-VERSION = '4.4.1'
+VERSION = '4.5'
 
 secret = 'pleasegivemoney!'
 hash_obj = SHA256.new(secret.encode('utf-8'))  
@@ -174,13 +174,21 @@ def STEP_LOG(msg, path):
     while log_update_sucess_retry < 10:
         try:
             now_str = now.strftime("%Y/%m/%d %H:%M:%S")
-            with open(path, "a") as f:
+            msg = msg.encode('utf-8', 'ignore').decode('utf-8', 'ignore')
+            with open(path, "a", encoding="utf-8") as f:
                 f.write('[%s] %s\n' % (now_str, msg))
-            log_update_sucess_retry = 10
+            break
         except:
             log_update_sucess_retry += 1
-                
-            
+    
+    try:
+        if log_update_sucess_retry == 10:
+            now_str = now.strftime("%Y/%m/%d %H:%M:%S")
+            with open(path, "a") as f:
+                f.write('[%s] tried to log 10 times but still fail\n' % (now_str))
+    except:
+        pass
+        
 def worker(scanner, window, text):
     
     # Check Dropbox.exe is active
@@ -249,6 +257,8 @@ def worker(scanner, window, text):
             use_internet_time = False
             now = datetime.datetime.now()
         
+        convert_to_image_count = 1
+        print_count = 1
         LOG('找到了 %s' % im_file_path, text)
         try:
             # Backup the image first
@@ -366,14 +376,14 @@ def worker(scanner, window, text):
                 copyfile(new_file_path, date_file_path)
             
             # Convert into pdf
-            convert_to_image_count = 1
-            while convert_to_image_count < 3:
+            
+            while convert_to_image_count < 4:
                 try:
                     STEP_LOG('Convert to image, count %d' % convert_to_image_count, log_path)
                     with open(os.path.abspath("%s.pdf" % date_file_path), 'wb') as f:
                         f.write(img2pdf.convert(os.path.abspath(date_file_path), fit='fill'))
                     STEP_LOG('Convert to image done', log_path)
-                    convert_to_image_count = 3
+                    break
                 except:
                     convert_to_image_count += 1
             
@@ -385,13 +395,13 @@ def worker(scanner, window, text):
             
             LOG('列印 %s' % im_file_path, text)
             if not args.debug:
-                print_count = 1
-                while print_count < 3:
+                
+                while print_count < 4:
                     try:
                         STEP_LOG('Print pdf, count %d' % print_count, log_path)
                         subprocess.call([PDFTOPRINTER_EXE, "%s.pdf" % os.path.abspath(date_file_path)])
                         STEP_LOG('Print pdf, done', log_path)
-                        print_count = 3
+                        break
                     except:
                         print_count += 1
                 
@@ -406,10 +416,13 @@ def worker(scanner, window, text):
                 STEP_LOG('Try to remove %s' % date_file_path, log_path)
                 count = safe_remove(date_file_path)
                 STEP_LOG('Try to remove %s done, try %d time' % (date_file_path, count), log_path)
-                
+            STEP_LOG('SUCCESS', log_path)
+            
         except:
             LOG('處理 %s 失敗' % im_file_path, text)
-            traceback.print_exc()
+            STEP_LOG('[!!!!Exception!!!!!]', log_path)
+            STEP_LOG('convert_to_image_count = %d' % convert_to_image_count, log_path)
+            STEP_LOG('print_count = %d' % print_count, log_path)
             
     folders = os.listdir(u'原圖')
     now = datetime.datetime.now()
